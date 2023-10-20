@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createWeb3Modal, defaultWagmiConfig } from '@web3modal/wagmi/react'
-import { WagmiConfig } from 'wagmi'
+import { WagmiConfig, useAccount, useBalance, useSendTransaction } from 'wagmi'
 import { arbitrum, mainnet, polygon } from 'wagmi/chains'
 import { sha256} from 'crypto-hash'
 import { QRCode } from "react-qr-code";
@@ -94,6 +94,76 @@ const Variables = () => {
   );
 };
 
+const IsConect = () => {
+  const { address, isConnecting, isDisconnected } = useAccount()
+  const [balanceamount, setBalanceAmount] = useState("");
+
+  if (isConnecting) return <div>Connecting…</div>
+  if (isDisconnected) return <div>Disconnected</div>
+
+  const Balance = () =>{
+    const { data, isError, isLoading } = useBalance({address:address})
+   
+    if (isLoading) return <div>Fetching balance…</div>
+    if (isError) return <div>Error fetching balance</div>
+    const balanceamount = data.formatted
+    setBalanceAmount(balanceamount)
+    console.log(balanceamount)
+
+    return (
+      <div>
+        Balance: {data?.formatted} {data?.symbol}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {address}
+      <Balance/><br/>
+    </div>
+  )
+}
+
+const SentTransaction = () =>{
+  const [amount, setAmount] = useState("");
+  const [walletaddress, setWalletAddress] = useState("");
+
+  const handleAmount = (event) => {
+    setAmount(event.target.value);
+  };
+  const handleWalletAddress = (event) => {
+    setWalletAddress(event.target.value);
+  };
+
+  const { data, isLoading, isSuccess, sendTransaction } = useSendTransaction({
+
+    to: walletaddress,
+    value: amount,
+    onError(error) {console.log('Error', error)},
+  })
+
+  return (
+    <div>
+      <input
+        type="number"
+        placeholder="Amount"
+        value={amount}
+        onChange={handleAmount}
+      /><br/>
+      <input
+        type="text"
+        placeholder="WalletAdress"
+        value={walletaddress}
+        onChange={handleWalletAddress}
+      /><br/>
+      <button onClick={() => sendTransaction()}>Send Transaction</button>
+      {isLoading && <div>Check Wallet</div>}
+      {isSuccess && <div>Transaction: {JSON.stringify(data)}</div>}
+    </div>
+  )
+}
+
 function App() {
   
   return (
@@ -103,6 +173,8 @@ function App() {
        <br/>
       <Variables/><br/>
       <w3m-button /><br/>
+      <IsConect/><br/>
+      <SentTransaction/><br/>
     </WagmiConfig>
     </>
   )
